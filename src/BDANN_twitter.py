@@ -397,7 +397,7 @@ def parse_arguments(parser):
     parser.add_argument('--text_only', type=bool, default=False, help='')
     parser.add_argument('--d_iter', type=int, default=3, help='')
     parser.add_argument('--batch_size', type=int, default=32, help='')
-    parser.add_argument('--num_epochs', type=int, default=0, help='')
+    parser.add_argument('--num_epochs', type=int, default=100, help='')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='')
     parser.add_argument('--event_num', type=int, default=10, help='')
 
