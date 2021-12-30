@@ -14,20 +14,21 @@ from torch.autograd import Variable, Function
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
+from tqdm import tqdm
 
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 
 # from logger import Logger
 
-from sklearn import metrics
 from transformers import *
+from sklearn import metrics
 
 import warnings
 
-warnings.filterwarnings("ignore")
+#warnings.filterwarnings("ignore")
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Rumor_Data(Dataset):
@@ -50,18 +51,31 @@ class Rumor_Data(Dataset):
 
 class ReverseLayerF(Function):
 
-    # @staticmethod
+    @staticmethod
     def forward(self, x):
         self.lambd = args.lambd
         return x.view_as(x)
+        #return x
 
-    # @staticmethod
+    @staticmethod
     def backward(self, grad_output):
         return (grad_output * -self.lambd)
 
+class GradientReversal(Function):
+
+    @staticmethod
+    def forward(ctx, x):
+        ctx.lmbd = args.lambd
+        return x
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output * -ctx.lmbd
+
 
 def grad_reverse(x):
-    return ReverseLayerF()(x)
+    return GradientReversal()(x)
+    #return ReverseLayerF(x)
 
 
 # Neural Network Model (1 hidden layer)
@@ -124,6 +138,8 @@ class CNN_Fusion(nn.Module):
         self.domain_classifier.add_module('d_fc2', nn.Linear(self.hidden_size, self.event_num))
         self.domain_classifier.add_module('d_softmax', nn.Softmax(dim=1))
 
+        self.grad_rev = GradientReversal.apply
+
     def init_hidden(self, batch_size):
         # Before we've done anything, we dont have any hidden state.
         # Refer to the Pytorch documentation to see exactly
@@ -153,7 +169,8 @@ class CNN_Fusion(nn.Module):
         # Fake or real
         class_output = self.class_classifier(text_image)
         # Domain (which Event )
-        reverse_feature = grad_reverse(text_image)
+        #reverse_feature = grad_reverse(text_image)
+        reverse_feature = self.grad_rev(text_image)
         domain_output = self.domain_classifier(reverse_feature)
 
         return class_output, domain_output
@@ -240,6 +257,8 @@ def main(args):
         print("CUDA")
         model.cuda()
 
+    print("MODEL IS BUILT")
+
     # Loss and Optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, list(model.parameters())),
@@ -255,7 +274,7 @@ def main(args):
     print('training model')
     adversarial = True
     # Train the Model
-    for epoch in range(args.num_epochs):
+    for epoch in tqdm(range(args.num_epochs)):
 
         p = float(epoch) / 100
         # lambd = 2. / (1. + np.exp(-10. * p)) - 1
@@ -272,7 +291,7 @@ def main(args):
         vali_cost_vector = []
         test_cost_vector = []
 
-        for i, (train_data, train_labels, event_labels) in enumerate(train_loader):
+        for i, (train_data, train_labels, event_labels) in tqdm(enumerate(train_loader), total=350):
             train_text, train_image, train_mask, train_labels, event_labels = \
                 to_var(train_data[0]), to_var(train_data[1]), to_var(train_data[2]), \
                 to_var(train_labels), to_var(event_labels)

@@ -15,11 +15,11 @@ import pandas as pd
 from PIL import Image
 import math
 from types import *
-import jieba
+#import jieba
 import os.path
-from googletrans import Translator
-from langdetect import detect
-from langdetect.lang_detect_exception import LangDetectException
+#from googletrans import Translator
+#from langdetect import detect
+#from langdetect.lang_detect_exception import LangDetectException
 
 
 def stopwordslist(filepath='../Data/weibo/stop_words.txt'):
