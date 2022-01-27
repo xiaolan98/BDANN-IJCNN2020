@@ -9,6 +9,6 @@ pimage:
 pclean:
 	podman rmi $(TAG)
 prun:
-	podman run -d -it --name=$(CONTAINERNAME) -v .:/bdann --security-opt=label=disable $(TAG)
+	podman run -d -it --name=$(CONTAINERNAME) --shm-size=4g -v .:/bdann --security-opt=label=disable $(TAG)
 pcleanall:
 	podman system prune --all --force && podman rmi --all
